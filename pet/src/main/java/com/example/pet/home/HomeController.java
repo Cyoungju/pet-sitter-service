@@ -10,11 +10,11 @@ import javax.servlet.http.HttpServletRequest;
 @RequiredArgsConstructor
 @Controller
 public class HomeController {
-    private final HomeService homeService;
+    //private final HomeService homeService;
 
     @GetMapping("/")
     public String main(Model model, HttpServletRequest request) {
-        homeService.userInfo(model, request);
+        //homeService.userInfo(model, request);
 
 
 

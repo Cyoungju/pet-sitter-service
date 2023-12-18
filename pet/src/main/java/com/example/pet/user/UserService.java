@@ -1,12 +1,9 @@
 package com.example.pet.user;
 
-
 import com.example.pet.core.error.exception.Exception400;
-import com.example.pet.core.error.exception.Exception401;
 import com.example.pet.core.error.exception.Exception500;
 import com.example.pet.core.security.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,38 +11,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-@Transactional(readOnly = true)
+
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 @Service
 public class UserService {
-
-    private final AuthenticationManager authenticationManager;
-    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtProvider;
+    private final AuthenticationManager authenticationManager;
     private final TokenRepository tokenRepository;
-
-    @Value("${jwt.secret}")
-    String secretKey;
-
-    @Transactional
-    public void join(UserRequest.JoinDTO requestDTO) {
-        checkEmail(requestDTO.getEmail());
-
-        // 비밀번호 인코더
-        String encodedPassword = passwordEncoder.encode(requestDTO.getPassword());
-        requestDTO.setPassword(encodedPassword);
-
-        try {
-            userRepository.save(requestDTO.toEntity());
-        }catch (Exception e){
-            throw new Exception500(e.getMessage());
-        }
-    }
 
 
 
@@ -57,57 +37,57 @@ public class UserService {
         }
     }
 
-    public UserResponse login(UserRequest.JoinDTO requestDTO, HttpServletResponse response) {
-        // ** 인증 작업.
-        try{
-            UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken
-                    = new UsernamePasswordAuthenticationToken(requestDTO.getEmail(), requestDTO.getPassword());
-            //사용자의 이메일과 패스워드를 포함한 인증 토큰을 생성합
-            Authentication authentication =  authenticationManager.authenticate(
-                    usernamePasswordAuthenticationToken
-            );
-            //사용자가 제공한 이메일과 비밀번호로 사용자를 인증하려고 하는것
-            // ** 인증 완료 값을 받아온다.
-            CustomUserDetails customUserDetails = (CustomUserDetails)authentication.getPrincipal();
-
-            System.out.println(JwtTokenProvider.create(customUserDetails.getUser())+"11111111111111111111111111");
-
-            String jwt = JwtTokenProvider.create(customUserDetails.getUser());
-
-
-            return UserResponse.builder()
-                    .id(customUserDetails.getUser().getId())
-                    .username(customUserDetails.getUser().getUsername())
-                    .email(customUserDetails.getUser().getEmail())
-                    .roles(customUserDetails.getUser().getRoles())
-                    .token(TokenDto.builder()
-                            .access_token(JwtTokenProvider.create(customUserDetails.getUser()))
-                            .refresh_token(createRefreshToken(customUserDetails.getUser()))
-                            .build())
+    @Transactional
+    public void join(UserRequest.JoinDTO request) {
+        checkEmail(request.getEmail());
+        try {
+            User user = User.builder()
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .username(request.getUsername())
+                    .roles(Collections.singletonList("ROLE_USER"))
                     .build();
+
+            userRepository.save(user);
         }catch (Exception e){
-            // 401 반환.
-            throw new Exception401("인증되지 않음."+"11111111111111111111111111");
+            throw new Exception500(e.getMessage());
         }
     }
 
 
-    public Optional<User> findByMemberEmail(String email) {
-        // 멤버 이메일로 멤버를 찾아서 반환하는 로직
-        // 예를 들어, 멤버 레포지토리를 이용해 멤버를 찾는다고 가정하면:
+    public UserResponse login(UserRequest.JoinDTO request) throws Exception {
 
-        Optional<User> foundMember = userRepository.findByEmail(email); // 멤버 레포지토리를 통해 이메일로 멤버 찾기
+        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken
+                = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
+        //사용자의 이메일과 패스워드를 포함한 인증 토큰을 생성합
+        Authentication authentication =  authenticationManager.authenticate(
+                usernamePasswordAuthenticationToken
+        );
+        //사용자가 제공한 이메일과 비밀번호로 사용자를 인증하려고 하는것
+        // ** 인증 완료 값을 받아온다.
+        CustomUserDetails customUserDetails = (CustomUserDetails)authentication.getPrincipal();
 
-        return foundMember;
+
+        return UserResponse.builder()
+                .id(customUserDetails.getUser().getId())
+                .username(customUserDetails.getUser().getUsername())
+                .email(customUserDetails.getUser().getEmail())
+                .roles(customUserDetails.getUser().getRoles())
+                .token(
+                        TokenDto.builder()
+                                .access_token(jwtProvider.createToken(customUserDetails.getUser().getEmail(), customUserDetails.getUser().getRoles()))
+                                .refresh_token(createRefreshToken(customUserDetails.getUser()))
+                                .build()
+                )
+                .build();
     }
 
 
-    // Refresh Token ================
 
     /**
      * Refresh 토큰을 생성한다.
      * Redis 내부에는
-     * refreshToken:memberId : tokenValue
+     * refreshToken:userId : tokenValue
      * 형태로 저장한다.
      */
     public String createRefreshToken(User user) {
@@ -115,7 +95,7 @@ public class UserService {
                 Token.builder()
                         .id(user.getId())
                         .refresh_token(UUID.randomUUID().toString())
-                        .expiration(300)
+                        .expiration(120)
                         .build()
         );
         return token.getRefresh_token();
@@ -142,23 +122,19 @@ public class UserService {
         }
     }
 
-
     public TokenDto refreshAccessToken(TokenDto token) throws Exception {
-        String email = JwtTokenProvider.verify(JwtTokenProvider.TOKEN_PREFIX).getSubject();
-
-        Optional<User> userEmail = findByMemberEmail(email);
-        User user = userEmail.get();
-
+        String email = jwtProvider.getEmail(token.getAccess_token());
+        User user = userRepository.findByEmail(email).orElseThrow(() ->
+                new Exception400("잘못된 계정정보입니다."));
         Token refreshToken = validRefreshToken(user, token.getRefresh_token());
 
         if (refreshToken != null) {
             return TokenDto.builder()
-                    .access_token(JwtTokenProvider.create(user))
+                    .access_token(jwtProvider.createToken(email, user.getRoles()))
                     .refresh_token(refreshToken.getRefresh_token())
                     .build();
         } else {
             throw new Exception("로그인을 해주세요");
         }
     }
-
 }

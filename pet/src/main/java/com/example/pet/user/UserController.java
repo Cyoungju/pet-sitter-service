@@ -23,9 +23,9 @@ import javax.validation.Valid;
 public class UserController {
     private final UserService userservice;
 
-    @PostMapping("/join")
-    public ResponseEntity<?> join(@RequestBody @Valid UserRequest.JoinDTO requestDTO, Error error) {
-        userservice.join(requestDTO);
+    @PostMapping("/register")
+    public ResponseEntity<?> join(@RequestBody @Valid UserRequest.JoinDTO request, Error error) {
+        userservice.join(request);
         return ResponseEntity.ok( ApiUtils.success(null) );
     }
     @PostMapping("/check")
@@ -34,11 +34,9 @@ public class UserController {
         return ResponseEntity.ok( ApiUtils.success(null) );
     }
 
-    @PostMapping(value="/login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> login(@RequestBody @Valid UserRequest.JoinDTO requestDTO, HttpServletResponse response, Error error) {
-        //String jwt = userservice.login(requestDTO);
-
-        return new ResponseEntity<>(userservice.login(requestDTO, response), HttpStatus.OK);
+    @PostMapping(value = "/login")
+    public ResponseEntity<?> signin(@RequestBody UserRequest.JoinDTO request) throws Exception {
+        return new ResponseEntity<>(userservice.login(request), HttpStatus.OK);
     }
     @GetMapping("/refresh")
     public ResponseEntity<TokenDto> refresh(@RequestBody TokenDto token) throws Exception {

@@ -1,35 +1,37 @@
 package com.example.pet.core.security;
 
-import com.example.pet.core.error.exception.Exception401;
-import com.example.pet.core.error.exception.Exception403;
-import com.example.pet.core.utils.FilterResponseUtils;
+import com.example.login.core.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
 
-@Slf4j
+@Configuration
 @RequiredArgsConstructor
-@Configuration // ** 현재 클래스를 (설정 클래스)로 설정
+@EnableWebSecurity
 public class SecurityConfig {
-    @Bean
-    public PasswordEncoder passwordEncoder(){
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-    }
 
+    private final JwtTokenProvider jwtProvider;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
@@ -44,86 +46,74 @@ public class SecurityConfig {
          */
     }
 
-    public class CustomSecurityFilterManager extends AbstractHttpConfigurer<CustomSecurityFilterManager, HttpSecurity> {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                // ID, Password 문자열을 Base64로 인코딩하여 전달하는 구조
+                .httpBasic().disable()
+                // 쿠키 기반이 아닌 JWT 기반이므로 사용하지 않음
+                .csrf().disable()
+                // CORS 설정
+                .cors(c -> {
+                            CorsConfigurationSource source = request -> {
+                                // Cors 허용 패턴
+                                CorsConfiguration config = new CorsConfiguration();
+                                config.setAllowedOrigins(
+                                        List.of("*")
+                                );
+                                config.setAllowedMethods(
+                                        List.of("*")
+                                );
+                                return config;
+                            };
+                            c.configurationSource(source);
+                        }
+                )
+                // Spring Security 세션 정책 : 세션을 생성 및 사용하지 않음
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                // 조건별로 요청 허용/제한 설정
+                .authorizeRequests()
+                // 회원가입과 로그인은 모두 승인
+                .antMatchers("/register", "/login", "/refresh").permitAll()
+                // /admin으로 시작하는 요청은 ADMIN 권한이 있는 유저에게만 허용
+                .antMatchers("/admin/**").hasRole("ADMIN")
+                // /user 로 시작하는 요청은 USER 권한이 있는 유저에게만 허용
+                .antMatchers("/user/**").hasRole("USER")
+                .anyRequest().denyAll()
+                .and()
+                // JWT 인증 필터 적용
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+                // 에러 핸들링
+                .exceptionHandling()
+                .accessDeniedHandler(new AccessDeniedHandler() {
 
-        @Override
-        public void configure(HttpSecurity httpSecurity) throws Exception {
 
-            AuthenticationManager authenticationManager = httpSecurity.getSharedObject(
-                    AuthenticationManager.class
-            );
-
-            httpSecurity.addFilter(new JwtAuthenticationFilter(authenticationManager));
-
-            super.configure(httpSecurity);
-        }
-    }
-
-    /*
-     * HTTP에 대해서 '인증'과 '인가'를 담당하는 메서드
-     * 필터를 통해 인증 방식과 인증 절차에 대해서 등록하며 설정을 담당하는 메서드
-     * */
-
-    @Bean // 스프링 빈으로 등록
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // 1. CSRF 해제 - 서버에 인증정보를 저장하지 않기때문에
-        http.csrf().disable(); // postman 접근해야 함!! - CSR 할때!!
-
-        // 2. iframe 거부 설정
-        http.headers().frameOptions().sameOrigin();
-
-        // 3. cors 재설정
-        http.cors().configurationSource(configurationSource());
-
-        // 4. jSessionId 사용 거부
-        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS); // 세션 정책
-
-        // 5. form 로긴 해제 (UsernamePasswordAuthenticationFilter 비활성화) (폼 로그인 비활성화)
-        http.formLogin().disable();
-
-        // 6. 로그인 인증창이 뜨지 않게 비활성화(기본 인증 비활성화)
-        http.httpBasic().disable();
-
-        // 7. 커스텀 필터 적용 (시큐리티 필터 교환) 커스텀 필터 적용
-        http.apply(new CustomSecurityFilterManager());
-
-        // 8. 인증 실패 처리
-        http.exceptionHandling().authenticationEntryPoint((request, response, authException) -> {
-            log.warn("인증되지 않은 사용자가 자원에 접근하려 합니다 : " + authException.getMessage());
-            FilterResponseUtils.unAuthorized(response, new Exception401("인증되지 않았습니다"));
-        });
-
-        // 9. 권한 실패 처리
-        http.exceptionHandling().accessDeniedHandler((request, response, accessDeniedException) -> {
-            log.warn("권한이 없는 사용자가 자원에 접근하려 합니다 : " + accessDeniedException.getMessage());
-            FilterResponseUtils.forbidden(response, new Exception403("권한이 없습니다"));
-        });
-
-        // 10. 인증, 권한 필터 설정
-        http.authorizeRequests(
-                authorize -> authorize.antMatchers("/carts/**", "/options/**", "/orders/**").authenticated()
-                        .antMatchers("/admin/**")
-                        .access("hasRole('ADMIN')")
-                        .anyRequest().permitAll() //다른 주소는 모두 허용
-        );
+                    @Override
+                    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+                        // 권한 문제가 발생했을 때 이 부분을 호출한다.
+                        response.setStatus(403);
+                        response.setCharacterEncoding("utf-8");
+                        response.setContentType("text/html; charset=UTF-8");
+                        response.getWriter().write("권한이 없는 사용자입니다.");
+                    }
+                })
+                .authenticationEntryPoint(new AuthenticationEntryPoint() {
+                    @Override
+                    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+                        // 인증문제가 발생했을 때 이 부분을 호출한다.
+                        response.setStatus(401);
+                        response.setCharacterEncoding("utf-8");
+                        response.setContentType("text/html; charset=UTF-8");
+                        response.getWriter().write("인증되지 않은 사용자입니다.");
+                    }
+                });
 
         return http.build();
     }
 
-    // ** 규칙: 헤더(Authorization), 메서드, IP 주소, 클라이언트으 쿠키 요청을 허용
-    public CorsConfigurationSource configurationSource() {
-        CorsConfiguration corsConfigurationSource = new CorsConfiguration();
-        corsConfigurationSource.addAllowedHeader("*"); // 모든 헤더를 허용
-        corsConfigurationSource.addAllowedMethod("*"); // GET, POST, PUT, DELETE 등의 모든 메서드를 허용
-        corsConfigurationSource.addAllowedOriginPattern("*"); // 모든 IP주소를 허용
-        corsConfigurationSource.setAllowCredentials(true); // 클라이언트 쿠키 요청 허용
-        corsConfigurationSource.addExposedHeader("Authorization"); // 헤더
-
-        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource
-                = new UrlBasedCorsConfigurationSource();
-
-        // ** (/) 들어오는 모든 유형의 URL 패턴을 허용.
-        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfigurationSource);
-        return urlBasedCorsConfigurationSource;
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 }
