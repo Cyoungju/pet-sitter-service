@@ -7,6 +7,9 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.pet.user.StringArrayConverter;
 import com.example.pet.user.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 import java.util.Date;
 
@@ -46,6 +49,8 @@ public class JwtTokenProvider {
     }
 
 
+
+
     // **  JWT 토큰 문자열을 검증하고, 유효하다면 디코딩된 DecodedJWT 객체를 반환.
     public static DecodedJWT verify(String jwt) throws SignatureVerificationException, TokenExpiredException {
 
@@ -55,6 +60,20 @@ public class JwtTokenProvider {
                 .verify(jwt);
 
         return decodedJWT;
+    }
+
+
+    public static String createRefreshToken(String key) {
+        Claims claims = Jwts
+                .claims();
+
+        return Jwts
+                .builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 3))//유효시간 (3일)
+                .signWith(SignatureAlgorithm.HS256, key) //HS256알고리즘으로 key를 암호화 해줄것이다.
+                .compact();
     }
 
 

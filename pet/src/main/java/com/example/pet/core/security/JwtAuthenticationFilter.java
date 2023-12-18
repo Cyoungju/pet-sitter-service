@@ -6,6 +6,9 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.pet.user.StringArrayConverter;
 import com.example.pet.user.User;
+import com.example.pet.user.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,11 +21,19 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 
 @Slf4j
 public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
+
+
+    private TokenRepository tokenRepository;
+    private UserRepository userRepository;
+    private String secretKey;
+
     public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
         super(authenticationManager);
     }
@@ -77,9 +88,33 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
         }
         catch (TokenExpiredException tee) {
             log.debug("토큰 사용 만료");
+
+            // redis에 저장되어있는 토큰 정보를 만료된 access token으로 찾아온다.
+            Optional<Token> foundTokenInfo = tokenRepository.findByAccessToken(jwt) ;
+            Token tokenget = foundTokenInfo.get();
+
+            String refreshToken = tokenget.getRefresh_token();
+
+            // 만약 refresh 토큰도 만료되었다면, ExceptionHandlerFilter에서 처리된다.
+            isExpired(refreshToken, secretKey);
+
+
+
         } finally {
             // ** 필터로 응답을 넘긴다.
             chain.doFilter(request, response);
         }
+
     }
+    private static Claims extractClaims(String token, String secretKey) {
+        return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
+    }
+
+    public static boolean isExpired(String token, String secretKey) {
+        Date expiredDate = extractClaims(token, secretKey).getExpiration();
+        return expiredDate.before(new Date());
+    }
+
+
+
 }

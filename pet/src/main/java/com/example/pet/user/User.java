@@ -19,6 +19,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     @Column(length = 100, nullable = false, unique = true)
     private String email;
 
@@ -30,6 +31,8 @@ public class User {
 
     @Column(length = 16)
     private String phoneNumber;
+
+    private String refreshToken; // 추가!
 
     @Column(length = 30)
     @Convert(converter = StringArrayConverter.class)
@@ -45,4 +48,8 @@ public class User {
         this.roles = roles;
     }
 
+
+    public void setRefreshToken(String refreshToken) { // 추가!
+        this.refreshToken = refreshToken;
+    }
 }

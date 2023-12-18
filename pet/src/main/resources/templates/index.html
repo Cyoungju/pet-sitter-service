@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
 <body>
+
+<div th:if="${user != null}">
+    <p th:text="'Welcome, ' + ${user.username} + '!'"></p>
+</div>
 
 </body>
 </html>
