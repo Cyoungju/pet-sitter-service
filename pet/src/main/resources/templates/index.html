@@ -6,8 +6,8 @@
 </head>
 <body>
 
-<div th:if="${user != null}">
-    <p th:text="'Welcome, ' + ${user.username} + '!'"></p>
+<div>
+    <span th:if="${user != null}" th:text="${user.username}"></span> 환영합니다~
 </div>
 
 </body>

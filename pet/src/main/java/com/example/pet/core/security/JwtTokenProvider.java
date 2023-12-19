@@ -1,95 +1,72 @@
 package com.example.pet.core.security;
 
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTDecodeException;
+import com.auth0.jwt.exceptions.SignatureVerificationException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.pet.user.StringArrayConverter;
+import com.example.pet.user.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Date;
-import java.util.List;
+
 
 @RequiredArgsConstructor
 @Component
 public class JwtTokenProvider {
-    @Value("${jwt.secret.key}")
-    private String salt;
 
-    private Key secretKey;
+    // ** JWT 토큰의 만료 시간을 1시간으로 설정.
+    private static final Long EXP = 1000L * 60 * 60;
 
-    // 만료시간 : 1Hour
-    private final long exp = 1000L * 60 * 60;
+    // ** 인증 헤더에 사용될 토큰의 접두어 ("Bearer ")
+    public static final String TOKEN_PREFIX = "Bearer ";
 
-    private final CustomUserDetailsService customUserDetailsService;
+    // ** 인증 헤더의 이름을 "Authorization"으로 설정.
+    public static final String HEADER = "Authorization";
 
-    @PostConstruct
-    protected void init() {
-        secretKey = Keys.hmacShaKeyFor(salt.getBytes(StandardCharsets.UTF_8));
+    // ** 토큰의 서명을 생성하고 검증할 때 사용하는 비밀 키
+    private static final String SECRET = "SECRET_KEY";
+
+    // ** User 객체의 정보를 사용해 JWT 토큰을 생성하고 반환.
+    public static String create(User user) {
+
+        // ** StringArrayConverter 객체 생성
+        StringArrayConverter stringArrayConverter = new StringArrayConverter();
+
+        // ** User의 권한 정보를 String 로 변경
+        String roles = stringArrayConverter.convertToDatabaseColumn(
+                user.getRoles()
+        );
+
+        String jwt = JWT.create()
+                .withSubject(user.getEmail()) // ** 토큰의 대상정보 셋팅
+                .withExpiresAt(new Date(System.currentTimeMillis() + EXP)) // ** 시간 설정
+                .withClaim("id", user.getId()) // ** id설정
+                .withClaim("roles", roles) // ** 권한정보 설정
+                .sign(Algorithm.HMAC512(SECRET)); // ** jwt 생성 알고리즘 설정
+
+        return TOKEN_PREFIX + jwt;
     }
 
-    // 토큰 생성
-    public String createToken(String email, List<String> roles) {
-        Claims claims = Jwts.claims().setSubject(email);
-        claims.put("roles", roles);
-        Date now = new Date();
-        return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + exp))
-                .signWith(secretKey, SignatureAlgorithm.HS256)
-                .compact();
-    }
-
-    // 권한정보 획득
-    // Spring Security 인증과정에서 권한확인을 위한 기능
-    public Authentication getAuthentication(String token) {
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(this.getEmail(token));
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
-    }
-
-    // 토큰에 담겨있는 유저 account 획득
-    public String getEmail(String token) {
-        // 만료된 토큰에 대해 parseClaimsJws를 수행하면 io.jsonwebtoken.ExpiredJwtException이 발생한다.
-        try {
-            Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
-        } catch (ExpiredJwtException e) {
-            e.printStackTrace();
-            return e.getClaims().getSubject();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody().getSubject();
+    public static String getEmail(String jwt) throws JWTDecodeException {
+        DecodedJWT decodedJWT = JWT.decode(jwt);
+        return decodedJWT.getSubject();
     }
 
 
+    // **  JWT 토큰 문자열을 검증하고, 유효하다면 디코딩된 DecodedJWT 객체를 반환.
+    public static DecodedJWT verify(String jwt) throws SignatureVerificationException, TokenExpiredException {
 
-    // Authorization Header를 통해 인증을 한다.
-    public String resolveToken(HttpServletRequest request) {
-        return request.getHeader("Authorization");
+        // ** 토큰 검증을 시작.
+        DecodedJWT decodedJWT = JWT.require(Algorithm.HMAC512(SECRET))
+                .build()
+                .verify(jwt);
+
+        return decodedJWT;
     }
 
-    // 토큰 검증
-    public boolean validateToken(String token) {
-        try {
-            // Bearer 검증
-            if (!token.substring(0, "BEARER ".length()).equalsIgnoreCase("BEARER ")) {
-                return false;
-            } else {
-                token = token.split(" ")[1].trim();
-            }
-            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
-            // 만료되었을 시 false
-            return !claims.getBody().getExpiration().before(new Date());
-        } catch (Exception e) {
-            return false;
-        }
-    }
 }

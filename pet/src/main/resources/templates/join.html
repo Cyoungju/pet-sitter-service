@@ -49,7 +49,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:8080/join', {
+                const response = await fetch('http://localhost:8080/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -59,7 +59,7 @@
 
                 const result = await response.json();
 
-                if (result.success) {
+                if (result.success()) {
                     alert("회원가입에 성공했습니다!");
                     window.location.href = '/';
                 } else {
