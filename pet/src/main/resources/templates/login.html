@@ -50,14 +50,6 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    // 성공적으로 응답을 받았을 때 JWT 토큰을 헤더에서 추출
-                    const jwtToken = response.headers.get('Authorization');
-
-                    // 추출된 JWT 토큰을 쿠키에 저장
-                    document.cookie = "jwtToken=" + jwtToken;
-
-                    // 추출된 JWT 토큰 사용 예시
-                    console.log('추출된 JWT 토큰:', jwtToken);
 
                     alert("로그인에 성공했습니다!");
                     window.location.href = '/';

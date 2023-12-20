@@ -1,15 +1,10 @@
 package com.example.pet.user;
 
-import com.example.pet.core.security.CustomUserDetails;
-import com.example.pet.core.security.TokenDto;
 import com.example.pet.core.utils.ApiUtils;
 import com.example.pet.core.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
@@ -36,19 +31,19 @@ public class UserController {
     }
 
     @PostMapping(value = "/login")
-    public ResponseEntity<?> signin(@RequestBody UserRequest.JoinDTO request, Error error) {
+    public ResponseEntity<?> signin(@RequestBody UserRequest.JoinDTO request, HttpServletResponse response, Error error) {
         String jwt = userservice.login(request);
 
-        System.out.println(jwt);
+        // "Bearer " 접두사 제거
+        jwt = jwt.replace(JwtTokenProvider.TOKEN_PREFIX, "");
+
+        // 쿠키 설정
+        Cookie cookie = new Cookie("jwtToken", jwt);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/"); // 모든 경로에서 쿠키 접근 가능
+        response.addCookie(cookie);
+
         return ResponseEntity.ok().header(JwtTokenProvider.HEADER, jwt)
                 .body(ApiUtils.success(null));
     }
-
-
-    @GetMapping("/refresh")
-    public ResponseEntity<TokenDto> refresh(TokenDto token) throws Exception {
-        return new ResponseEntity<>( userservice.refreshAccessToken(token), HttpStatus.OK);
-    }
-
-
 }

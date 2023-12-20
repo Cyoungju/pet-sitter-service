@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,6 +16,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -120,14 +122,14 @@ public class SecurityConfig {
                 // 모든 요청에 대해 인증을 요구 하지 않는다
                 // 위에서 설정한 특정 경로에 대한 권한 인증 확인만 하고 다른 경로는 확인하지 않는다
         );
-        // 11. 로그인 관련 설정 (이 부분 추가)
-//        http.formLogin()
-//            .loginPage("/login") // 로그인 페이지 지정
-//            .permitAll();
-//
-//        // 12. 로그아웃 관련 설정 (이 부분 추가)
-//        http.logout()
-//            .permitAll();
+
+        // 12. 로그아웃 관련 설정 (이 부분 추가)
+        http.logout()
+                .logoutUrl("/logout")
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    response.sendRedirect("/");
+                })
+                .deleteCookies("jwtToken");
 
         return http.build();
     }

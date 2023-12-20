@@ -35,7 +35,6 @@ public class User {
     @Column(length = 500)
     private String address;
 
-    private String refreshToken; // 추가!
 
     @Column(length = 30)
     @Convert(converter = StringArrayConverter.class)
@@ -50,11 +49,6 @@ public class User {
         this.phoneNumber = phoneNumber;
         this.address = address;
         this.roles = roles;
-    }
-
-
-    public void setRefreshToken(String refreshToken) { // 추가!
-        this.refreshToken = refreshToken;
     }
 
 

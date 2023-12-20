@@ -3,20 +3,15 @@ package com.example.pet.core.security;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.pet.user.StringArrayConverter;
 import com.example.pet.user.User;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
+import java.security.SignatureException;
 import java.util.Date;
 
-
-@RequiredArgsConstructor
-@Component
 public class JwtTokenProvider {
 
     // ** JWT 토큰의 만료 시간을 1시간으로 설정.
@@ -44,17 +39,12 @@ public class JwtTokenProvider {
 
         String jwt = JWT.create()
                 .withSubject(user.getEmail()) // ** 토큰의 대상정보 셋팅
-                .withExpiresAt(new Date(System.currentTimeMillis() + EXP)) // ** 시간 설정 - 만료시간
+                .withExpiresAt(new Date(System.currentTimeMillis() + EXP)) // ** 시간 설정
                 .withClaim("id", user.getId()) // ** id설정
                 .withClaim("roles", roles) // ** 권한정보 설정
                 .sign(Algorithm.HMAC512(SECRET)); // ** jwt 생성 알고리즘 설정
 
         return TOKEN_PREFIX + jwt;
-    }
-
-    public static String getEmail(String jwt) throws JWTDecodeException {
-        DecodedJWT decodedJWT = JWT.decode(jwt);
-        return decodedJWT.getSubject();
     }
 
 
@@ -68,5 +58,4 @@ public class JwtTokenProvider {
 
         return decodedJWT;
     }
-
 }

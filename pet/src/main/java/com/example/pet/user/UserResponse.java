@@ -1,6 +1,5 @@
 package com.example.pet.user;
 
-import com.example.pet.core.security.TokenDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +19,7 @@ public class UserResponse {
     private String phoneNumber;
     private String address;
     private List<String> roles = new ArrayList<>();
-    private TokenDto token;
+
 
 
     public UserResponse(User user) {

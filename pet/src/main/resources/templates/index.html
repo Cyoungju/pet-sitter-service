@@ -8,7 +8,45 @@
 
 <div>
     <span th:if="${user != null}" th:text="${user.username}"></span> 환영합니다~
+
+    <a href="/logout">로그아웃</a>
 </div>
 
+
+<script>
+    // JWT 토큰을 복호화하는 함수
+    // function decodeJwtToken(token) {
+    //     const base64Url = token.split('.')[1];
+    //     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    //     const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    //         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    //     }).join(''));
+    //
+    //     return JSON.parse(jsonPayload);
+    // }
+    //
+    // // 쿠키에서 JWT 토큰을 가져오는 함수
+    // function getJwtTokenFromCookie() {
+    //     const cookies = document.cookie.split(';').map(cookie => cookie.trim());
+    //     for (const cookie of cookies) {
+    //         if (cookie.startsWith('jwtToken=')) {
+    //             return cookie.substring('jwtToken='.length);
+    //         }
+    //     }
+    //     return null;
+    // }
+    //
+    // // DOMContentLoaded 이벤트에 추가된 코드
+    // document.addEventListener('DOMContentLoaded', function () {
+    //     // 토큰을 가져옴
+    //     const jwtToken = getJwtTokenFromCookie();
+    //
+    //     // 토큰이 존재하면 복호화하고 콘솔에 출력
+    //     if (jwtToken) {
+    //         const decodedToken = decodeJwtToken(jwtToken);
+    //         console.log('복호화된 JWT 토큰:', decodedToken);
+    //     }
+    // });
+</script>
 </body>
 </html>
