@@ -18,6 +18,7 @@ public class UserResponse {
     private String email;
     private String username;
     private String phoneNumber;
+    private String address;
     private List<String> roles = new ArrayList<>();
     private TokenDto token;
 
@@ -27,6 +28,7 @@ public class UserResponse {
         this.email = user.getEmail();
         this.username = user.getUsername();
         this.phoneNumber = user.getPhoneNumber();
+        this.address = user.getAddress();
         this.roles = user.getRoles();
     }
 }

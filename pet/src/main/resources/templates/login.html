@@ -4,6 +4,7 @@
 <!--<link rel="stylesheet" th:href="@{/css/member.css}">-->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
@@ -24,10 +25,9 @@
     </div>
 </div>
 <script>
-
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('loginForm');
-        form.addEventListener('submit', async function(e) {
+        form.addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const email = document.getElementById('email').value;
@@ -49,7 +49,16 @@
 
                 const result = await response.json();
 
-                if (result.success) {
+                if (response.ok) {
+                    // 성공적으로 응답을 받았을 때 JWT 토큰을 헤더에서 추출
+                    const jwtToken = response.headers.get('Authorization');
+
+                    // 추출된 JWT 토큰을 쿠키에 저장
+                    document.cookie = "jwtToken=" + jwtToken;
+
+                    // 추출된 JWT 토큰 사용 예시
+                    console.log('추출된 JWT 토큰:', jwtToken);
+
                     alert("로그인에 성공했습니다!");
                     window.location.href = '/';
                 } else {
@@ -61,25 +70,6 @@
             }
         });
     });
-
-
-    function getQueryVariable(variable) {
-        var query = window.location.search.substring(1);
-        var vars = query.split("&");
-        for (var i = 0; i < vars.length; i++) {
-            var pair = vars[i].split("=");
-            if (decodeURIComponent(pair[0]) == variable) {
-                return decodeURIComponent(pair[1]);
-            }
-        }
-        return null;
-    }
-
-    // 메시지 표시
-    var message = getQueryVariable("msg");
-    if (message !== null) {
-        alert(message);
-    }
 </script>
 
 </body>

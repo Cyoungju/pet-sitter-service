@@ -1,38 +1,37 @@
 package com.example.pet.home;
 
 import com.example.pet.core.security.CustomUserDetails;
+import com.example.pet.core.security.JwtAuthenticationFilter;
 import com.example.pet.core.security.JwtTokenProvider;
 import com.example.pet.user.User;
 import com.example.pet.user.UserRepository;
+import com.example.pet.user.UserRequest;
+import com.example.pet.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import java.security.Principal;
 import java.util.Optional;
 
 @RequiredArgsConstructor
 @Controller
 public class HomeController {
-    private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @GetMapping("/")
-    public String main(CustomUserDetails customUserDetails, Model model){
-        System.out.println(customUserDetails.getUser());
-        if(customUserDetails.getUser() == null){
-
-        } else {
-            String userEmail = customUserDetails.getUser().getEmail();
-            Optional<User> userOptional = userRepository.findByEmail(userEmail);
-            User user = userOptional.get();
-            model.addAttribute("user", user);
-
-        }
+    public String main(Model model) {
+        model.addAttribute("user", new UserRequest.JoinDTO());
         return "index";
+    }
+
+    @GetMapping("/petsitter")
+    public String cartAdd() {
+        return "petsitter";
     }
 
     @GetMapping("/register")
@@ -44,4 +43,10 @@ public class HomeController {
     public String login() {
         return "login"; // "login.html" 파일을 렌더링
     }
+
+    @GetMapping("/carts")
+    public String cart() {
+        return "carts"; // "login.html" 파일을 렌더링
+    }
+
 }

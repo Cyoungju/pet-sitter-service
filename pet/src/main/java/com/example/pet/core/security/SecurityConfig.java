@@ -89,7 +89,7 @@ public class SecurityConfig {
         http.formLogin().disable();
 
         // 6. 로그인 인증창이 뜨지 않게 비활성화(기본 인증 비활성화)
-        http.httpBasic().disable();
+        http.httpBasic().disable(); //bearer 방식으로
 
         // 7. 커스텀 필터 적용 (시큐리티 필터 교환) 커스텀 필터 적용
         http.apply(new CustomSecurityFilterManager());
@@ -109,7 +109,7 @@ public class SecurityConfig {
         // 10. 인증, 권한 필터 설정 - 경로에 대한 인증 설정
         http.authorizeRequests(
                 authorize -> authorize
-                        .antMatchers("/carts/**", "/options/**", "/orders/**")
+                        .antMatchers("/petsitter/**","/carts/**", "/options/**", "/orders/**")
                         .authenticated()
 
                         .antMatchers("/admin/**")

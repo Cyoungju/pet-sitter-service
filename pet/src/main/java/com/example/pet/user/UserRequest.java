@@ -30,6 +30,8 @@ public class UserRequest {
         //@NotEmpty
         private String username;
 
+        private String address;
+
 
         //@NotEmpty
         @Pattern(regexp = "^[0-9]{10,11}$", message = "휴대폰 번호는 숫자 10~11자리만 가능합니다.")
@@ -43,6 +45,7 @@ public class UserRequest {
                     .password(password)
                     .username(username)
                     .phoneNumber(phoneNumber)
+                    .address(address)
                     .roles(Collections.singletonList("ROLE_USER"))
                     .build();
         }

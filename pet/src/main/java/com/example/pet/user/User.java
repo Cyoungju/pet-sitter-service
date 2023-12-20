@@ -32,6 +32,9 @@ public class User {
     @Column(length = 16)
     private String phoneNumber;
 
+    @Column(length = 500)
+    private String address;
+
     private String refreshToken; // 추가!
 
     @Column(length = 30)
@@ -39,12 +42,13 @@ public class User {
     private List<String> roles = new ArrayList<>();
 
     @Builder
-    public User(Long id, String email, String password, String username, String phoneNumber, List<String> roles) {
+    public User(Long id, String email, String password, String username, String phoneNumber,String address, List<String> roles) {
         this.id = id;
         this.email = email;
         this.password = password;
         this.username = username;
         this.phoneNumber = phoneNumber;
+        this.address = address;
         this.roles = roles;
     }
 

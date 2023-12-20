@@ -44,7 +44,7 @@ public class JwtTokenProvider {
 
         String jwt = JWT.create()
                 .withSubject(user.getEmail()) // ** 토큰의 대상정보 셋팅
-                .withExpiresAt(new Date(System.currentTimeMillis() + EXP)) // ** 시간 설정
+                .withExpiresAt(new Date(System.currentTimeMillis() + EXP)) // ** 시간 설정 - 만료시간
                 .withClaim("id", user.getId()) // ** id설정
                 .withClaim("roles", roles) // ** 권한정보 설정
                 .sign(Algorithm.HMAC512(SECRET)); // ** jwt 생성 알고리즘 설정

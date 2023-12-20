@@ -73,6 +73,7 @@ public class UserService {
         user.setRefreshToken(createRefreshToken(customUserDetails.getUser()));
 
 
+        System.out.println(customUserDetails.getUser().getEmail());
 
         UserResponse userResponse = UserResponse.builder()
                 .id(customUserDetails.getUser().getId())

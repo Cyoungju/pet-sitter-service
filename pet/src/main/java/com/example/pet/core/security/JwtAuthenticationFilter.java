@@ -7,6 +7,7 @@ import com.example.pet.core.security.JwtTokenProvider;
 import com.example.pet.user.StringArrayConverter;
 import com.example.pet.user.User;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -22,8 +23,13 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Jwt가 유효성을 검증하는 Filter
- */
+* Jwt가 유효성을 검증하는 Filter
+*/
+
+/*
+*
+* */
+
 
 @Slf4j
 public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
@@ -32,17 +38,21 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
     }
 
     // ** Http 요청이 발생할 때마다 호출되는 메서드.
+    // 인증이나 권한 이 필요한 주소 요청이 있을때 해당 필터를 타게 됨
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
         String prefixJwt = request.getHeader(JwtTokenProvider.HEADER);
 
+
         // ** 헤더가 없다면 더이상 이 메서드에서 할 일은 없음. 다음으로 넘김.
         if(prefixJwt == null) {
             chain.doFilter(request, response);
             return;
         }
+
+        //검증을 해서 정상적인 사용자 인지 확인
 
         // ** Bearer 제거.
         String jwt = prefixJwt.replace(JwtTokenProvider.TOKEN_PREFIX, "");
