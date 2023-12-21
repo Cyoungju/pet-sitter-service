@@ -37,7 +37,7 @@ public class HomeController {
         return "petsitter";
     }
 
-    @GetMapping("/register")
+    @GetMapping("/join")
     public String join() {
         return "join"; // "join.html" 파일을 렌더링
     }

@@ -17,7 +17,7 @@ import javax.validation.Valid;
 public class UserController {
     private final UserService userservice;
 
-    @PostMapping("/register")
+    @PostMapping("/join")
     public ResponseEntity<?> join(@RequestBody @Valid UserRequest.JoinDTO request, Error error) {
         userservice.join(request);
         return ResponseEntity.ok( ApiUtils.success(null) );

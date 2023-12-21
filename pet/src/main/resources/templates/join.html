@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <head>
     <meta charset="UTF-8">
     <title>Join Form</title>
@@ -49,7 +49,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:8080/register', {
+                const response = await fetch('http://localhost:8080/join', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
